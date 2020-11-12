@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import models
-from django.core.cache import cache
-
+import json
 import random
 import uuid
+
+from django.db import models
+from django.core.cache import cache
 from django.utils import timezone
 
 # Create your models here.
@@ -136,3 +137,11 @@ class Libro(models.Model):
     def save(self, *args, **kwargs):
         cache.delete("Libros-")
         super(Libro, self).save(*args, **kwargs)
+
+
+class FacturaCached(models.Model):
+    key = models.CharField(max_length=100)
+    data = models.TextField(blank=True)
+
+    def get_json_data(self):
+        return json.dumps(json.loads(self.data))
