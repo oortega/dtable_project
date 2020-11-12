@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from django.shortcuts import render
-from django.core.cache import cache
-from django.http import HttpResponse
-from django.utils import formats
-from django.core.urlresolvers import reverse
-
-from .models import Autor, Libro, Ciudad
 
 import json
 import timeit
+
+from django.core.cache import cache
+from django.core.urlresolvers import reverse
+from django.http import HttpResponse
+from django.shortcuts import render
+from django.utils import formats
 
 # Rest Framework
 from rest_framework import serializers
 from rest_framework import generics
 from rest_framework.renderers import JSONRenderer
+
+from .models import Autor, Libro, Ciudad, FacturaCached
 
 
 class CodeTimer:
@@ -29,17 +30,130 @@ class CodeTimer:
         self.took = (timeit.default_timer() - self.start) * 1000.0
         print('Code block' + self.name + ' time: ' + str(self.took) + ' ms')
 
-# Create Users for Table Autores
-# from djipsum.faker import FakerModel
-# faker = FakerModel(app='table', model='Autor')
-# ##Creando autores ES RAPIDO
-# for _ in range(8000):
-#     fields = {
-#         'nombre': faker.fake.name(),
-#         'apellidos': faker.fake.word()+" "+faker.fake.word(),
-#         'email': faker.fake.email(),
-#     }
-#     faker.create(fields)
+
+class Columns:
+    # Para replicar la seleccion de columnas 
+
+    keys = [
+        "nombre_completo",
+        "nombre",
+        "apellidos",
+        "email",
+        "fecha_emision",
+        "fecha_vencimiento",
+        "fecha_pago",
+        "total",
+        "total_cobrado",
+        "referencia",
+        "factura_generica",
+        "reconexion_aplicada",
+        "mora_aplicada",
+        "total2",
+        "total3",
+        "impuestos",
+        "subtotal",
+        "descuento",
+        "referencia2",
+        "referencia3",
+        "url",
+        "url2",
+        "url3",
+        "estado",
+        "ciudad__nombre",
+        "ciudad__personas",
+        "ciudad__personas2",
+        "perfil__telefono",
+        "perfil__direccion",
+        "perfil__informacion",
+        "perfil__editorial__nombre",
+        "perfil__editorial__direccion",
+        "perfil__editorial__telefono",
+        "perfil__editorial__eslogan",
+        "perfil__editorial__rfc",
+        "perfil__editorial__rfc2",
+        "perfil__editorial__distribuidor__nombre",
+    ]
+    
+    cached_keys = [
+        "nombre_completo",
+        "nombre",
+        "apellidos",
+        "email",
+        "fecha_emision",
+        "fecha_vencimiento",
+        "fecha_pago",
+        "total",
+        "total_cobrado",
+        "referencia",
+        "factura_generica",
+        "reconexion_aplicada",
+        "mora_aplicada",
+        # "total2",
+        # "total3",
+        # "impuestos",
+        # "subtotal",
+        # "descuento",
+        # "referencia2",
+        # "referencia3",
+        # "url",
+        # "url2",
+        # "url3",
+        # "estado",
+        # "ciudad__nombre",
+        # "ciudad__personas",
+        # "ciudad__personas2",
+        # "perfil__telefono",
+        # "perfil__direccion",
+        # "perfil__informacion",
+        # "perfil__editorial__nombre",
+        # "perfil__editorial__direccion",
+        # "perfil__editorial__telefono",
+        # "perfil__editorial__eslogan",
+        # "perfil__editorial__rfc",
+        # "perfil__editorial__rfc2",
+        # "perfil__editorial__distribuidor__nombre",
+    ]
+
+    no_cached_keys = [
+        "nombre_completo",
+        "nombre",
+        "apellidos",
+        "email",
+        "fecha_emision",
+        "fecha_vencimiento",
+        "fecha_pago",
+        "total",
+        "total_cobrado",
+        "referencia",
+        "factura_generica",
+        "reconexion_aplicada",
+        "mora_aplicada",
+        "total2",
+        "total3",
+        "impuestos",
+        "subtotal",
+        "descuento",
+        "referencia2",
+        "referencia3",
+        "url",
+        "url2",
+        "url3",
+        "estado",
+        "ciudad__nombre",
+        "ciudad__personas",
+        "ciudad__personas2",
+        "perfil__telefono",
+        "perfil__direccion",
+        "perfil__informacion",
+        "perfil__editorial__nombre",
+        "perfil__editorial__direccion",
+        "perfil__editorial__telefono",
+        "perfil__editorial__eslogan",
+        "perfil__editorial__rfc",
+        "perfil__editorial__rfc2",
+        "perfil__editorial__distribuidor__nombre",
+    ]
+
 
 def lista_autores_json_cached(request):
     # Mostrar 8 mil registros con cache para datatables usando el modelo Autor con poco campos y sin relaciones 
@@ -56,9 +170,10 @@ def lista_autores_json_cached(request):
 
     Autores="Autores-"
     cache_autores = cache.get(Autores)
-    json_autores = []
     if cache_autores is None:
-        autores = Autor.objects.all()
+        autores = Autor.objects.select_related("ciudad", "perfil").prefetch_related(
+            "perfil__editorial", "perfil__editorial__distribuidor").all()
+        json_autores = []
         with CodeTimer("for autor in autores: cached"):
             for autor in autores:
                 json_autores.append({   # 14 / 23
@@ -107,7 +222,7 @@ def lista_autores_json_cached(request):
                 # "cliente__user_cliente__ip",
             })
         cache_autores = json.dumps(json_autores)
-        cache.set(Autores, cache_autores, timeout=21600)
+        cache.set(Autores, cache_autores, timeout=180)
     return HttpResponse(cache_autores, content_type='application/json')
 
 
@@ -129,7 +244,8 @@ def lista_autores_json_no_cached(request):
     # Tiempo con Mysql agregando mas columnas (37): +13.65 Seg
     # Code block 'for autor in autores: no cached' time: 13215.321064 ms
     json_autores = []
-    autores = Autor.objects.select_related("perfil").prefetch_related("perfil__editorial").all()
+    autores = Autor.objects.select_related("ciudad", "perfil").prefetch_related(
+        "perfil__editorial", "perfil__editorial__distribuidor").all()
     with CodeTimer("for autor in autores: no cached"):
         for autor in autores:
             json_autores.append({   # 14 / 23
@@ -179,6 +295,71 @@ def lista_autores_json_no_cached(request):
             })
     cache_autores = json.dumps(json_autores)
     return HttpResponse(cache_autores, content_type='application/json')
+
+
+def lista_autores_json_db_cached(request):
+    key = "autores_"
+    factura_cached = FacturaCached.objects.filter(key=key).first()
+    if factura_cached:
+        data = factura_cached.get_json_data()
+    else:
+        json_autores = {}
+        autores = Autor.objects.select_related("ciudad", "perfil").prefetch_related(
+            "perfil__editorial", "perfil__editorial__distribuidor").all()[:6000]
+        
+        for autor in autores:
+            autor_id = autor.id
+            json_autores[autor_id] = {
+                "nombre_completo":autor.nombre+" "+autor.apellidos,
+                "nombre": autor.nombre,
+                "apellidos": autor.apellidos,
+                "email": autor.email,
+                "fecha_emision": formats.date_format(autor.fecha_emision, "SHORT_DATE_FORMAT"),
+                "fecha_vencimiento": formats.date_format(autor.fecha_vencimiento, "SHORT_DATE_FORMAT"),
+                "fecha_pago": formats.date_format(autor.fecha_pago, "SHORT_DATE_FORMAT"),
+                "total": float(autor.total),
+                "total_cobrado": float(autor.total_cobrado),
+                "referencia": str(autor.referencia),
+                "factura_generica": autor.factura_generica,
+                "reconexion_aplicada": autor.reconexion_aplicada,
+                "mora_aplicada": autor.mora_aplicada,
+                "total2": float(autor.total2),
+                "total3": float(autor.total3),
+                "impuestos": float(autor.impuestos),
+                "subtotal": float(autor.subtotal),
+                "descuento": float(autor.descuento),
+                "referencia2": str(autor.referencia2),
+                "referencia3": str(autor.referencia3),
+                "url": autor.url,
+                "url2": autor.url2,
+                "url3": autor.url3,
+                "estado": autor.get_estado_display(),
+
+                # FK 6
+                "ciudad__nombre": autor.ciudad.nombre,
+                "ciudad__personas": str(autor.ciudad.personas),
+                "ciudad__personas2": str(autor.ciudad.personas2),
+                "perfil__telefono": autor.perfil.telefono, 
+                "perfil__direccion": autor.perfil.direccion,
+                "perfil__informacion": autor.perfil.informacion,
+                
+                "perfil__editorial__nombre": autor.perfil.editorial.nombre,
+                "perfil__editorial__direccion": autor.perfil.editorial.direccion,
+                "perfil__editorial__telefono": autor.perfil.editorial.telefono,
+                "perfil__editorial__eslogan": autor.perfil.editorial.eslogan,
+                "perfil__editorial__rfc": autor.perfil.editorial.rfc,
+                "perfil__editorial__rfc2": autor.perfil.editorial.rfc2,
+
+                "perfil__editorial__distribuidor__nombre": autor.perfil.editorial.nombre,
+            }
+
+        data = json.dumps(json_autores)
+        FacturaCached.objects.create(
+            key=key,
+            data=data
+        )
+    
+    return HttpResponse(data, content_type='application/json')
 
 
 # Django Serializer Views
@@ -269,9 +450,25 @@ def table_api(request):
     return render(request, 'lado_cliente/lista_autores_api.html', {"title_page": title_page, "info_page": info_page})
 
 
+def table_cached(request):
+    url_json = reverse("lista_autores_json_cached")
+    title_page = "Lista Autores - Utilizando informacón en cache"
+    keys = Columns.cached_keys
+    info_page = """
+        <p> Esta es la forma mas rapida de pasar la información a la tabla. Sin embargo, no todos los registros de todos los clientes pueden estar guardados.
+        Teniendo en cuenta que aproximadamente 100 clientes cuenten con mas de 8k registros, la informacion en cache se ve afectada?
+        
+        Tambien puede guardarse en un campo de base de datos y consultarse. </p>
+        <p></p>
+    """
+    return render(request, 'lado_cliente/lista_autores_test.html', {
+        "title_page": title_page, "info_page": info_page, "url_json": url_json, "keys": keys})
+
+
 def table_no_cached(request):
     url_json = reverse("lista_autores_json_no_cached")
     title_page = "Lista Autores - Json creado con Queryset Recorrido"
+    keys = Columns.no_cached_keys
     info_page = """
         <p>La problematica al mostrar 9k registros con recorriendo una query y creando el diccionario es el tiempo que tarda la vista en devolver la informacion
         en formato json. El tiempo tambien aumento con validaciones (validando si un campo es null para poner que este vacio), o creando variables que 
@@ -287,17 +484,41 @@ def table_no_cached(request):
 
         <p></p>
     """
-    return render(request, 'lado_cliente/lista_autores.html', {"title_page": title_page, "info_page": info_page, "url_json": url_json})
+    return render(request, 'lado_cliente/lista_autores_test.html', {
+        "title_page": title_page, "info_page": info_page, "url_json": url_json, "keys": keys})
 
 
-def table_cached(request):
-    url_json = reverse("lista_autores_json_cached")
-    title_page = "Lista Autores - Utilizando informacón en cache"
+def table_db_cached(request):
+    url_json = reverse("lista_autores_json_db_cached")
+    title_page = "Lista Autores - Información Consultada de un Json en la Base de Datos"
+    keys = Columns.no_cached_keys
     info_page = """
-        <p> Esta es la forma mas rapida de pasar la información a la tabla. Sin embargo, no todos los registros de todos los clientes pueden estar guardados.
-        Teniendo en cuenta que aproximadamente 100 clientes cuenten con mas de 8k registros, la informacion en cache se ve afectada?
+        <p>
+            Que se genere el view una vez que se obtenga de base de datos no es tardado, esto debido a que se guarda
+            de la forma en la que datatables necesita. Y esto es un problema al querer actualizar el json/campo
+            cuando sucede una actualizacion en la factura.
+        </p>
+
+        <p>
+        Como lo necesita datatables: <br><br>
+            [ <br>
+             &nbsp;&nbsp;&nbsp;&nbsp;{"id_autor": "10", "nombre": "Van", "apellido": "Hoenheim"}, <br>
+             &nbsp;&nbsp;&nbsp;&nbsp;{"id_autor": "11", "nombre": "Edward", "apellido": "Elric"}, <br>
+             &nbsp;&nbsp;&nbsp;&nbsp;{"id_autor": "12", "nombre": "Alphonse", "apellido": "Elric"}, <br>
+            ]
+        </p>
+
+        <p>
+            Como seria mas facil obtener la ifnormacion de las facturas para actualizar. Sin embargo no es lo ideal <br>
+            Para que datatables funcione.<br><br>
+            { <br>
+             &nbsp;&nbsp;&nbsp;&nbsp;"1": {"sub_total": "10.00", "cliente": "wisp1"}, <br>
+             &nbsp;&nbsp;&nbsp;&nbsp;"2": {"sub_total": "10.00", "cliente": "wisp1"}, <br>
+             &nbsp;&nbsp;&nbsp;&nbsp;"3": {"sub_total": "10.00", "cliente": "wisp1"}, <br>
+            }
+        </p>
         
-        Tambien puede guardarse en un campo de base de datos y consultarse. </p>
         <p></p>
     """
-    return render(request, 'lado_cliente/lista_autores.html', {"title_page": title_page, "info_page": info_page, "url_json": url_json})
+    return render(request, 'lado_cliente/lista_autores_test.html', {
+        "title_page": title_page, "info_page": info_page, "url_json": url_json, "keys": keys})
