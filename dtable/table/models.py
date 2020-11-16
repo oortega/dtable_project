@@ -125,6 +125,10 @@ class Ciudad(models.Model):
     personas = models.UUIDField(default=uuid.uuid4)
     personas2 = models.UUIDField(default=uuid.uuid4)
 
+    def __unicode__(self):
+            return '%s' %(self.nombre)
+
+
 class Libro(models.Model):
     titulo=models.CharField(max_length=100)
     autor=models.ManyToManyField(Autor)
@@ -145,3 +149,6 @@ class FacturaCached(models.Model):
 
     def get_json_data(self):
         return json.dumps(json.loads(self.data))
+    
+    def get_dict_data(self):
+        return json.loads(self.data)
