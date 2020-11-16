@@ -5,49 +5,13 @@
 {% block content %} 
  <div class="responsive-table">                          
     <div class="scrollable-area">
-        <table id="lista-autores" class='table table-bordered  table-hover display'>
+        <table id="lista-autores" class='display nowrap table table-bordered  table-hover'>
                 <!-- we need thead because of ordering controls -->
                <thead>
                     <tr>
                         {% for key in keys %}
                             <th>{{key}}</th>
                         {% endfor %}
-                        <!-- <th>Nombre Completo</th>
-                        <th>Nombre</th>
-                        <th>Apellidos</th>
-                        <th>Correo electronico</th>
-                        <th>fecha_emision</th>
-                        <th>fecha_vencimiento</th>
-                        <th>fecha_pago</th>
-                        <th>total</th>
-                        <th>total_cobrado</th>
-                        <th>referencia</th>
-                        <th>factura_generica</th>
-                        <th>reconexion_aplicada</th>
-                        <th>total2</th>
-                        <th>total3</th>
-                        <th>impuestos</th>
-                        <th>subtotal</th>
-                        <th>descuento</th>
-                        <th>referencia2</th>
-                        <th>referencia3</th>
-                        <th>url</th>
-                        <th>url2</th>
-                        <th>url3</th>
-                        <th>estado</th>
-                        <th>ciudad__nombre</th>
-                        <th>ciudad__personas</th>
-                        <th>ciudad__personas2</th>
-                        <th>perfil__telefono</th>
-                        <th>perfil__direccion</th>
-                        <th>perfil__informacion</th>
-                        <th>perfil__editorial__nombre</th>
-                        <th>perfil__editorial__direccion</th>
-                        <th>perfil__editorial__telefono</th>
-                        <th>perfil__editorial__eslogan</th>
-                        <th>perfil__editorial__rfc</th>
-                        <th>perfil__editorial__rfc2</th>
-                        <th>perfil__editorial__distribuidor__nombre</th> -->
                     </tr>
                 </thead>
    				<tfoot>
@@ -55,42 +19,6 @@
                         {% for key in keys %}
                             <th>{{key}}</th>
                         {% endfor %}
-                        <!-- <th>Nombre Completo</th>
-                        <th>Nombre</th>
-                        <th>Apellidos</th>
-                        <th>Correo electronico</th>
-                        <th>fecha_emision</th>
-                        <th>fecha_vencimiento</th>
-                        <th>fecha_pago</th>
-                        <th>total</th>
-                        <th>total_cobrado</th>
-                        <th>referencia</th>
-                        <th>factura_generica</th>
-                        <th>reconexion_aplicada</th>
-                        <th>total2</th>
-                        <th>total3</th>
-                        <th>impuestos</th>
-                        <th>subtotal</th>
-                        <th>descuento</th>
-                        <th>referencia2</th>
-                        <th>referencia3</th>
-                        <th>url</th>
-                        <th>url2</th>
-                        <th>url3</th>
-                        <th>estado</th>
-                        <th>ciudad__nombre</th>
-                        <th>ciudad__personas</th>
-                        <th>ciudad__personas2</th>
-                        <th>perfil__telefono</th>
-                        <th>perfil__direccion</th>
-                        <th>perfil__informacion</th>
-                        <th>perfil__editorial__nombre</th>
-                        <th>perfil__editorial__direccion</th>
-                        <th>perfil__editorial__telefono</th>
-                        <th>perfil__editorial__eslogan</th>
-                        <th>perfil__editorial__rfc</th>
-                        <th>perfil__editorial__rfc2</th>
-                        <th>perfil__editorial__distribuidor__nombre</th> -->
                     </tr>
                 </tfoot>
                 <tbody>
@@ -108,55 +36,38 @@
 <script src="{% static 'assets/javascripts/plugins/datatables/datatables.min.js' %}"></script>
 <script type="text/javascript">
     var table_c; 
+    var xd = "";
     jQuery(document).ready(function() {
 	table_c = jQuery('#lista-autores').DataTable({
         "ajax": {
             "processing": true,
             "url": "{% if not url_json %}{% url 'lista_autores_json_no_cached' %}{% else %}{{ url_json }}{% endif %}",
-            "dataSrc": ""
+            // "data": "data",
+            //"dataSrc": function(response){
+            //    xd = response.data;
+            //    console.log(response);
+            //    return response.data;
+            //},
+            //"dataSrc": 'data',
+            dataSrc: function(response){
+                window.data = response;
+                return Object.keys(response);
+            },
 
         },
         "columns": [
+            
             {% for key in keys %}
-                { "data": "{{key}}", "name":"{{key}}", "class": "{{key}}" },
+                {
+                    "data": function (row) {
+                        //console.log(localStorage.getItem(row));
+                        return window.data[row].{{key}};
+                    },
+                    "name": '{{ key }}'
+
+                },
             {% endfor %}
-                // { "data": 'nombre_completo', "name":'nombre'},
-                // { "data": 'nombre', "name":'nombre'},
-                // { "data": 'apellidos', "name":'apellidos'},
-                // { "data": 'email', "name":'email'},
-                // { "data": 'fecha_emision', "name":'fecha_emision'},
-                // { "data": 'fecha_vencimiento', "name":'fecha_vencimiento'},
-                // { "data": 'fecha_pago', "name":'fecha_pago'},
-                // { "data": 'total', "name":'total'},
-                // { "data": 'total_cobrado', "name":'total_cobrado'},
-                // { "data": 'referencia', "name":'referencia'},
-                // { "data": 'factura_generica', "name":'factura_generica'},
-                // { "data": 'reconexion_aplicada', "name":'reconexion_aplicada'},
-                // { "data": 'total2', "name":'total2'},
-                // { "data": 'total3', "name":'total3'},
-                // { "data": 'impuestos', "name":'impuestos'},
-                // { "data": 'subtotal', "name":'subtotal'},
-                // { "data": 'descuento', "name":'descuento'},
-                // { "data": 'referencia2', "name":'referencia2'},
-                // { "data": 'referencia3', "name":'referencia3'},
-                // { "data": 'url', "name":'url'},
-                // { "data": 'url2', "name":'url2'},
-                // { "data": 'url3', "name":'url3'},
-                // { "data": 'estado', "name":'estado'},
-                // { "data": 'ciudad__nombre', "name":'ciudad__nombre'},
-                // { "data": 'ciudad__personas', "name":'ciudad__personas'},
-                // { "data": 'ciudad__personas2', "name":'ciudad__personas'},
-                // { "data": 'perfil__telefono', "name":'perfil__telefono'},
-                // { "data": 'perfil__direccion', "name":'perfil__direccion'},
-                // { "data": 'perfil__informacion', "name":'perfil__informacion'},
-                // { "data": 'perfil__editorial__nombre', "name":'perfil__editorial__nombre'},
-                // { "data": 'perfil__editorial__direccion', "name":'perfil__editorial__direccion'},
-                // { "data": 'perfil__editorial__telefono', "name":'perfil__editorial__telefono'},
-                // { "data": 'perfil__editorial__eslogan', "name":'perfil__editorial__eslogan'},
-                // { "data": 'perfil__editorial__rfc', "name":'perfil__editorial__rfc'},
-                // { "data": 'perfil__editorial__rfc2', "name":'perfil__editorial__rfc2'},
-                // { "data": 'perfil__editorial__distribuidor__nombre', "name":'perfil__editorial__distribuidor__nombre'},
-            ],
+        ],
         "columnDefs":[
                 { 
                 "width": "380px", 
@@ -164,12 +75,11 @@
                 },
             ],
         lengthMenu: [
-            [10, 100, 1000, 4000,  -1 ],
-            ['10', '100', '1000', '4000', 'Todos' ]
+            [10, 100, 500, 1000],
+            ['10', '100', '500', '1000']
         ],
     
-    
-});	
+    });	
     $('#lista-autores tfoot tr').clone(true).appendTo( '#lista-autores thead' );
     $('#lista-autores tfoot tr').hide();
     $('#lista-autores thead tr:eq(1) th').each( function (i) {
@@ -184,6 +94,11 @@
             	}
         	});
         });
+    // table_c.on( 'xhr', function () {
+    //     var json = table_c.ajax.json();
+    //     alert( json.data.length +' row(s) were loaded' );
+    // });
+    
 });
 </script>
 

@@ -16,7 +16,7 @@ from rest_framework import generics
 from rest_framework.renderers import JSONRenderer
 
 from .models import Autor, Libro, Ciudad, FacturaCached
-
+from .forms import AuthorForm
 
 class CodeTimer:
 
@@ -83,11 +83,11 @@ class Columns:
         "fecha_vencimiento",
         "fecha_pago",
         "total",
-        "total_cobrado",
-        "referencia",
-        "factura_generica",
-        "reconexion_aplicada",
-        "mora_aplicada",
+        # "total_cobrado",
+        # "referencia",
+        # "factura_generica",
+        # "reconexion_aplicada",
+        # "mora_aplicada",
         # "total2",
         # "total3",
         # "impuestos",
@@ -298,14 +298,29 @@ def lista_autores_json_no_cached(request):
 
 
 def lista_autores_json_db_cached(request):
+    # Generar el Json por primera vez y guardarlo es igual de tardado que los demas metodos, pues la query debe
+    # recorrerse y crear el diccionario con la informacion
+
+    # Una vez guardada la informacion, el tiempo de Descarga del json en la vista de 9k registros es de +-1 segundo.
+    # Code block 'Query Facturacached' time: 229.119062424 ms
+    # Code block 'Conversion a JSON del String de FacturaCached' time: 540.380001068 ms
+
+    # Lo demas depende del navegador y la computadora : Finish: 2.45 s | DOMContentLoaded: 1.29 s | Load: 1.51 s
+
+    # Mostrando todos los camps de los 9 registros, el tiempo que tarda en mostrar los registros en el datatables
+    # es de +6 Segundos
+
     key = "autores_"
-    factura_cached = FacturaCached.objects.filter(key=key).first()
+    with CodeTimer("Query Facturacached"):
+        factura_cached = FacturaCached.objects.filter(key=key).first()
+    
     if factura_cached:
-        data = factura_cached.get_json_data()
+        with CodeTimer("Conversion a JSON del String de FacturaCached"):
+            data = factura_cached.get_json_data()
     else:
         json_autores = {}
         autores = Autor.objects.select_related("ciudad", "perfil").prefetch_related(
-            "perfil__editorial", "perfil__editorial__distribuidor").all()[:6000]
+            "perfil__editorial", "perfil__editorial__distribuidor").all()
         
         for autor in autores:
             autor_id = autor.id
@@ -417,6 +432,7 @@ class AutorListView(generics.ListAPIView):
     # Serializa la informacion de la base de datos para el datatables 
     # Tiempo desde la vista donde esta la tabla: 762.86 ms 
     
+    # 3000 Usuarios
     # Tiempo desde la vista obteniendo la info desde Mysql: 980 ms
     # Tiempo con Mysql agregando mas columnas (14): 4.62 Seg
     # Tiempo con Mysql agregando mas columnas (24): 11.39 Seg
@@ -431,6 +447,7 @@ class AutorListView(generics.ListAPIView):
         return Autor.objects.select_related("perfil", "ciudad").prefetch_related("perfil__editorial").all()
 
 
+# Landing Views
 def table_api(request):
     title_page = "Lista Autores - API con Django Rest Framework"
     info_page = """
@@ -491,7 +508,7 @@ def table_no_cached(request):
 def table_db_cached(request):
     url_json = reverse("lista_autores_json_db_cached")
     title_page = "Lista Autores - Información Consultada de un Json en la Base de Datos"
-    keys = Columns.no_cached_keys
+    keys = Columns.cached_keys
     info_page = """
         <p>
             Que se genere el view una vez que se obtenga de base de datos no es tardado, esto debido a que se guarda
@@ -522,3 +539,92 @@ def table_db_cached(request):
     """
     return render(request, 'lado_cliente/lista_autores_test.html', {
         "title_page": title_page, "info_page": info_page, "url_json": url_json, "keys": keys})
+
+
+# Edit Views
+def update_author(request, author_id):
+    author = Autor.objects.filter(id=author_id).first()
+    title_page = "Update Author - Form"
+    form = AuthorForm(request.POST or None, instance=author)
+    if request.POST:
+        if form.is_valid():
+            _author = form.save()
+            update_db_cached(author, author_id, form.changed_data)
+
+    return render(request, 'forms/update_author.html', {'form': form, 'title_page': title_page})
+
+
+def serialize_autor(autor):
+    return {
+        "nombre_completo":autor.nombre+" "+autor.apellidos,
+        "nombre": autor.nombre,
+        "apellidos": autor.apellidos,
+        "email": autor.email,
+        "fecha_emision": formats.date_format(autor.fecha_emision, "SHORT_DATE_FORMAT"),
+        "fecha_vencimiento": formats.date_format(autor.fecha_vencimiento, "SHORT_DATE_FORMAT"),
+        "fecha_pago": formats.date_format(autor.fecha_pago, "SHORT_DATE_FORMAT"),
+        "total": float(autor.total),
+        "total_cobrado": float(autor.total_cobrado),
+        "referencia": str(autor.referencia),
+        "factura_generica": autor.factura_generica,
+        "reconexion_aplicada": autor.reconexion_aplicada,
+        "mora_aplicada": autor.mora_aplicada,
+        "total2": float(autor.total2),
+        "total3": float(autor.total3),
+        "impuestos": float(autor.impuestos),
+        "subtotal": float(autor.subtotal),
+        "descuento": float(autor.descuento),
+        "referencia2": str(autor.referencia2),
+        "referencia3": str(autor.referencia3),
+        "url": autor.url,
+        "url2": autor.url2,
+        "url3": autor.url3,
+        "estado": autor.get_estado_display(),
+        # FK 6
+        "ciudad__nombre": autor.ciudad.nombre,
+        "ciudad__personas": str(autor.ciudad.personas),
+        "ciudad__personas2": str(autor.ciudad.personas2),
+        "perfil__telefono": autor.perfil.telefono,
+        "perfil__direccion": autor.perfil.direccion,
+        "perfil__informacion": autor.perfil.informacion,
+        #
+        "perfil__editorial__nombre": autor.perfil.editorial.nombre,
+        "perfil__editorial__direccion": autor.perfil.editorial.direccion,
+        "perfil__editorial__telefono": autor.perfil.editorial.telefono,
+        "perfil__editorial__eslogan": autor.perfil.editorial.eslogan,
+        "perfil__editorial__rfc": autor.perfil.editorial.rfc,
+        "perfil__editorial__rfc2": autor.perfil.editorial.rfc2,
+        ##
+        "perfil__editorial__distribuidor__nombre": autor.perfil.editorial.nombre,
+    }
+
+
+def update_db_cached(author, author_id, changed_keys):
+    key = "autores_"
+    factura_cached = FacturaCached.objects.filter(key=key).first()
+    
+    if factura_cached:
+        # Opcion 1.- Obtener los campos que se cambiaron y actualizarlos en el json usando .__dict___
+        # Opcion 2.- Actualizar cada uno de los campos debido a los foreign_key
+
+        # convertmos el campo en diccionario
+        data = factura_cached.get_dict_data()
+
+        # Obtenemos la llave del diccionario
+        author_dict = data.get(author_id)
+
+        # Serializamos el autor
+        s_author = serialize_autor(author)
+
+        # Actualizamos ...
+        data[author_id].update(s_author)
+        data = json.dumps(data)
+
+        key = "autores_"
+        factura_cached = FacturaCached.objects.filter(key=key).first()
+        factura_cached.data = data
+        factura_cached.save()
+
+    else:
+        "Se ejecuta el metodo que calcula el json"
+        pass

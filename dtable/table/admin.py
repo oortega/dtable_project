@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.contrib import admin
-from table.models import Autor, Libro, FacturaCached
+from table.models import Autor, Libro, FacturaCached, Ciudad
 # Register your models here.
 
 
@@ -22,6 +22,11 @@ class FacturaCachedAdmin(admin.ModelAdmin):
 	list_filter=('key',)
 
 
+class CiudadAdmin(admin.ModelAdmin):
+	list_display= ('nombre', 'personas')
+
+
 admin.site.register(Autor, AutorAdmin)
 admin.site.register(Libro, LibroAdmin)
 admin.site.register(FacturaCached, FacturaCachedAdmin)
+admin.site.register(Ciudad, CiudadAdmin)
