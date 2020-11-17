@@ -122,8 +122,8 @@ def lista_autores_server_json(request):
         "recordsFiltered": filtered_count,
         "data": json_autores,
     }
-   	json_data = json.dumps(json_data) 
-   	return HttpResponse(json_data, content_type='application/json')
+	json_data = json.dumps(json_data)
+	return HttpResponse(json_data, content_type='application/json')
 
 def lista_libros_server_json(request):
 	json_libros = []
@@ -142,9 +142,10 @@ def lista_libros_server_json(request):
 			columna_name = str(columna_dic.get("columna"))
 			valor_busqueda = columna_dic.get("valor_busqueda")
 			kwargs_libros["{0}__icontains".format(columna_name)] = valor_busqueda
-			
-   	libros=Libro.objects.filter(**kwargs_libros)
-   	if global_search:
+	
+	libros=Libro.objects.filter(**kwargs_libros)
+	
+	if global_search:
    		libros = libros.filter(Q(titulo__icontains=global_search)|Q(fecha_publicacion__icontains=global_search)|Q(portada__icontains=global_search))
 
 	if order_by:
@@ -168,5 +169,5 @@ def lista_libros_server_json(request):
         "recordsFiltered": filtered_count,
         "data": json_libros,
     }
-   	json_data = json.dumps(json_data) 
-   	return HttpResponse(json_data, content_type='application/json')
+	json_data = json.dumps(json_data)
+	return HttpResponse(json_data, content_type='application/json')

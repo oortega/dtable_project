@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.core.cache import cache
 from django.http import HttpResponse
 from django.utils import formats
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from .models import Autor, Libro, Ciudad
 
@@ -301,3 +301,4 @@ def table_cached(request):
         <p></p>
     """
     return render(request, 'lado_cliente/lista_autores.html', {"title_page": title_page, "info_page": info_page, "url_json": url_json})
+

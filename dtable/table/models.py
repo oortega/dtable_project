@@ -74,8 +74,8 @@ class Autor(models.Model):
     estado = models.PositiveSmallIntegerField(choices=ESTADO_FACTURA, default=rand_state)
 
     # fk
-    ciudad = models.ForeignKey('table.Ciudad', verbose_name="Ciudad", null=True, related_name='autor_ciudad')
-    perfil = models.ForeignKey('table.Perfil', verbose_name='Autores', null=True)
+    ciudad = models.ForeignKey('table.Ciudad', verbose_name="Ciudad", null=True, related_name='autor_ciudad', on_delete=models.SET_NULL)
+    perfil = models.ForeignKey('table.Perfil', verbose_name='Autores', null=True, on_delete=models.SET_NULL)
 
     class Meta:
         ordering = ['nombre']
@@ -97,7 +97,7 @@ class Perfil(models.Model):
     informacion = models.TextField(blank=True)
     
     # FK
-    editorial = models.ForeignKey('table.Editorial', related_name='perfiles')
+    editorial = models.ForeignKey('table.Editorial', related_name='perfiles', on_delete=models.SET_NULL, null=True)
 
 
 class Editorial(models.Model):
@@ -110,7 +110,7 @@ class Editorial(models.Model):
     rfc2 = models.CharField(max_length=100, default=uuid.uuid4)
 
     #FK
-    distribuidor = models.ForeignKey('table.Distribuidor', related_name='Editoriales')
+    distribuidor = models.ForeignKey('table.Distribuidor', related_name='Editoriales', on_delete=models.SET_NULL, null=True)
 
 
 class Distribuidor(models.Model):
