@@ -88,7 +88,7 @@
             "dataSrc": ""
         },
         "columns": [
-                { "data": 'nombre_completo', "name":'nombre'},
+                {#{ "data": 'nombre_completo', "name":'nombre'},#}
                 { "data": 'nombre', "name":'nombre'},
                 { "data": 'apellidos', "name":'apellidos'},
                 { "data": 'email', "name":'email'},
@@ -112,6 +112,7 @@
                 { "data": 'url3', "name":'url3'},
                 { "data": 'estado', "name":'estado'},
                 { "data": 'ciudad.nombre', "name":'nombre_ciudad'},
+                { "data": 'perfil.telefono', "name":'telefono'},
             ],
         "columnDefs":[
                 { 
@@ -123,7 +124,7 @@
             [10, 100, 1000, 4000,  -1 ],
             ['10', '100', '1000', '4000', 'Todos' ]
         ],
-    
+        "deferRender": true,
     
 });	
     $('#lista-autores tfoot tr').clone(true).appendTo( '#lista-autores thead' );

@@ -15,7 +15,7 @@ from rest_framework import serializers
 from rest_framework import generics
 from rest_framework.renderers import JSONRenderer
 
-from .models import Autor, Libro, Ciudad, FacturaCached
+from .models import Autor, Libro, Ciudad, FacturaCached, Perfil
 from .forms import AuthorForm
 
 class CodeTimer:
@@ -384,13 +384,20 @@ class ModelCiudadSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ModelPerfilSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Perfil
+        fields = '__all__'
+
+
 class AutorModelSerializer(serializers.ModelSerializer):
-    nombre_completo = serializers.SerializerMethodField('get_full_name')
+    # nombre_completo = serializers.SerializerMethodField('get_full_name')
     ciudad = ModelCiudadSerializer()
+    perfil = ModelPerfilSerializer()
     # nombre_ciudad = serializers.SerializerMethodField('ciudad_nombre')
     
-    def get_full_name(self, obj):
-        return obj.nombre + " " + obj.apellidos
+    # def get_full_name(self, obj):
+    #     return obj.nombre + " " + obj.apellidos
 
     # def ciudad_nombre(self, obj):
     #    return obj.ciudad.nombre
@@ -399,7 +406,7 @@ class AutorModelSerializer(serializers.ModelSerializer):
         model = Autor
         fields = [
             "id",
-            "nombre_completo",
+            # "nombre_completo",
             "nombre",
             "apellidos",
             "email",
@@ -424,6 +431,7 @@ class AutorModelSerializer(serializers.ModelSerializer):
             "url3",
             "estado",
             "ciudad",
+            "perfil",
         ]
         read_only_fields = fields
 
@@ -439,9 +447,9 @@ class AutorListView(generics.ListAPIView):
     # Tiempo con mysql agregando una columna relacionada y actualizando el query: 23 Segundos
     # Tiempo con mysql agregando una columna relacionada y serializada: 44 Segundos
 
-    queryset = Autor.objects.all()
+    # queryset = Autor.objects.all()A
     serializer_class = AutorModelSerializer
-    renderer_classes = [JSONRenderer]
+    # renderer_classes = [JSONRenderer]
 
     def get_queryset(self):
         return Autor.objects.select_related("perfil", "ciudad").prefetch_related("perfil__editorial").all()
